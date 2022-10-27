@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' atom:; script-src 'self' atom:; img-src 'self' atom: data:">
+    <link rel="stylesheet" href="STYLE.CSS">
+    <link rel="stylesheet" href="./assets/tingle.css">
+    <link rel="stylesheet" type="text/css" href="./assets/jquery-ui.min.css"/>
+    <title>Shell</title>
+  </head>
+  <body>
+    <div id="headingBox">
+        <h1>Application Dashboard</h1>
+        <button id="_shutdown_">Shutdown</button> <button id="_reboot_">Restart</button>
+    </div>
+    <hr>
+    <input type="text" id="search_input" placeholder="Search for apps..." title="Type in an app name">
+    <div id="app_box">
+      Loading applications ...
+    </div>
+    <div class="frameOverlay"></div>
+  </body>
+  <script src="./assets/jquery-3.6.1.min.js"></script>
+  <script src="./assets/jquery-ui.min.js"></script>
+  <script src="INDEX.JS"></script>
+  <script src="./assets/tingle.js"></script>
+</html>
