@@ -89,7 +89,6 @@ function runApp(name, path, uuid) {
     appFrame.frameBorder = 0;
     appFrame.allowFullscreen = "";
     appFrame.classList.add("appFrame");
-    appFrame.sandbox = "allow-scripts";
     appWindow.appendChild(appFrame);
 
     document.body.appendChild(appWindow);

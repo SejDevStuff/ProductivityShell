@@ -10,7 +10,7 @@ const appMan = require('./appman');
 var progInit = false;
 
 // ============================ //
-let SHELL_VERSION = 2;
+let SHELL_VERSION = 3;
 let SHELL_PATH = null;
 // ============================ //
 
@@ -44,16 +44,12 @@ function manageIPC(app, win) {
                     setTimeout(() => {
                         dialog.showOpenDialog({ properties: ['openFile'], title: "Your shell needs updating. Please select your shell EXE." }).then((path) => {
                             SHELL_PATH = path.filePaths[0];
-                            if (path.canceled) {
-                                win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Restart your computer please.");
-                                return false;
-                            }
                             appMan.updateShell(SHELL_PATH).then((result) => {
                                 if (result) {
                                     process.exit();
                                 } else {
                                     win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Restart your computer please.");
-                                    return false;
+                                    return;
                                 }
                             });
                         });
