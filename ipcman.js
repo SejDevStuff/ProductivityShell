@@ -43,6 +43,10 @@ function manageIPC(app, win) {
                     win.webContents.send("GetShellPath", "");
                     setTimeout(() => {
                         dialog.showOpenDialog({ properties: ['openFile'], title: "Your shell needs updating. Please select your shell EXE." }).then((path) => {
+                            if (path.canceled) {
+                                win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Restart your computer please.");
+                                return;
+                            }
                             SHELL_PATH = path.filePaths[0];
                             appMan.updateShell(SHELL_PATH).then((result) => {
                                 if (result) {
