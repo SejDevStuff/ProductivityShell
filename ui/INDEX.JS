@@ -147,6 +147,7 @@ function msgBox(msg) {
         cssClass: ["modal"],
         onClose: function() {
             modal.destroy();
+            modal = null;
         }
     });
     modal.setContent(msg);
