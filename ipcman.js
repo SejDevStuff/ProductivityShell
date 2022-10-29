@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const { v4 : uuidv4 } = require('uuid');
 const { exec } = require('child_process');
+const log = require('electron-log');
+const ipcManLog = log.scope("IPCManager");
 
 const folderMan = require('./folderman');
 const appMan = require('./appman');
@@ -15,7 +17,7 @@ let SHELL_PATH = null;
 // ============================ //
 
 async function init(app) {
-    console.log("[IPCManager] Initialising Inter-Process Communications Manager ...");
+    ipcManLog.info("Initialising Inter-Process Communications Manager ...");
     folderMan.init();
     appMan.init(folderMan);
 
@@ -29,7 +31,7 @@ async function init(app) {
 
 function manageIPC(app, win) {
     if (!progInit) {
-        console.log("[IPCManager] Please run init() before using any other function!");
+        ipcManLog.error("Please run init() before using any other function!");
         return;
     }
 
@@ -46,7 +48,7 @@ function manageIPC(app, win) {
     });
 
     ipcMain.on('GetOnlineAppList', (e, args) => {
-        console.log("[IPCManager] GetOnlineAppList request");
+        ipcManLog.error("GetOnlineAppList request");
         appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
             win.webContents.send("AppList", applist);
         })
@@ -58,6 +60,7 @@ function manageIPC(app, win) {
                 if (SHELL_PATH == null) {
                     win.webContents.send("GetShellPath", "");
                     setTimeout(() => {
+                        ipcManLog.info("An update is available!");
                         dialog.showOpenDialog({ properties: ['openFile'], title: "Your shell needs updating. Please select your shell EXE." }).then((path) => {
                             if (path.canceled) {
                                 win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Restart your computer please.");
@@ -89,10 +92,11 @@ function manageIPC(app, win) {
     });
 
     ipcMain.on('RunApp', (e, args) => {
+        ipcManLog.info("RunApp request");
         let RealAppPath = folderMan.relpath_to_realpath(args);
         let Mainfile = "INDEX.HTML";
 
-        //console.log("Trying to run app: " + path.join(RealAppPath, Mainfile));
+        ipcManLog.info("Trying to run app: " + path.join(RealAppPath, Mainfile));
 
         if (fs.existsSync(path.join(RealAppPath, "Info.json"))) {
             try {
@@ -125,7 +129,7 @@ function manageIPC(app, win) {
     });
 
     ipcMain.on('InstallApplication', (e, args) => {
-        console.log("[IPCManager] InstallApp request");
+        ipcManLog.info("InstallApp request");
         appMan.appExists(args).then((result) => {
             if (result) {
                 dialog.showMessageBox(win, {title: "Install '" + args + "'?", message: "Do you want to install the application '" + args + "'?\nIf you do not remember wanting to install this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
@@ -142,12 +146,13 @@ function manageIPC(app, win) {
                     }
                 });
             } else {
-                console.log("[IPCManager] InstallApp request: App does not exist");
+                ipcManLog.info("InstallApp request: App does not exist");
             }
         })
     });
 
     ipcMain.on('UninstallApplication', (e, args) => {
+        ipcManLog.info("InstallApp request");
         if (appMan.appExistsLocal(args)) {
             dialog.showMessageBox(win, {title: "Uninstall '" + args + "'?", message: "Do you want to remove the application '" + args + "'?\nIf you do not remember wanting to remove this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
                 if (data.response == 0) {
@@ -163,6 +168,7 @@ function manageIPC(app, win) {
     })
 
     ipcMain.on('GetApplications', (e, args) => {
+        ipcManLog.info("GetApps request");
         let Applications = appMan.getInstalledApplications();
         win.webContents.send('ApplicationsList', Applications);
     });

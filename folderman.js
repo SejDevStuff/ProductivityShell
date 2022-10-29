@@ -1,5 +1,7 @@
 const path = require('path');
 const fs = require('fs');
+const log = require('electron-log');
+const folderManLog = log.scope("FolderManager");
 
 var ROOT_PATH = "";
 var APP_PATH = "";
@@ -8,7 +10,7 @@ var APP_CACHE_PATH = "";
 var progInit = false;
 
 function init() {
-    console.log("[FolderManager] Initialising Folder Manager ...");
+    folderManLog.info("Initialising Folder Manager ...");
     ROOT_PATH = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
     
     ROOT_PATH = path.join(ROOT_PATH, "prodsuite_data");
@@ -31,49 +33,47 @@ function init() {
 
 function make_dir(dirpath) {
     if (!progInit) {
-        console.log("[FolderManager] Please run init() before using any other function!");
+        folderManLog.error("Please run init() before using any other function!");
         return;
     }
 
-    console.log("[FolderManager] Making path " + dirpath);
+    folderManLog.info("Making path " + dirpath);
 
     dirpath = path.join(ROOT_PATH, dirpath);
     dirpath = path.resolve(dirpath);
 
     if (!dirpath.startsWith(ROOT_PATH)) {
-        console.log("[FolderManager] WARN: dirpath does not start with ROOT_PATH");
+        folderManLog.warn("Dirpath does not start with ROOT_PATH");
         return;
     }
 
     if (fs.existsSync(dirpath)) {
-        console.log("[FolderManager] WARN: already exists");
+        folderManLog.warn("Already exists");
         return;
     }
 
     try {
         fs.mkdirSync(dirpath);
     } catch (e) {
-        console.log("[FolderManager] ERROR: cannot make directory");
+        folderManLog.error("Cannot make directory");
     }
 }
 
 function relpath_to_realpath(relpath) {
     if (!progInit) {
-        console.log("[FolderManager] Please run init() before using any other function!");
+        folderManLog.error("Please run init() before using any other function!");
         return;
     }
-    console.log("[FolderManager] Getting RELPATH: " + relpath);
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         realpath = ROOT_PATH;
     }
-    console.log("[FolderManager] Resolved REALPATH: " + realpath);
     return realpath;
 }
 
 function realpath_to_relpath(realpath) {
     if (!progInit) {
-        console.log("[FolderManager] Please run init() before using any other function!");
+        folderManLog.error("Please run init() before using any other function!");
         return;
     }
     return path.resolve(realpath.replace(ROOT_PATH, "/"));
@@ -81,11 +81,11 @@ function realpath_to_relpath(realpath) {
 
 function return_safe_contents(dirpath) {
     if (!progInit) {
-        console.log("[FolderManager] Please run init() before using any other function!");
+        folderManLog.error("Please run init() before using any other function!");
         return;
     }
 
-    console.log("[FolderManager] Getting path " + dirpath)
+    folderManLog.info("Getting path " + dirpath)
 
     var Data = {
         _dpath: "/",
@@ -96,17 +96,17 @@ function return_safe_contents(dirpath) {
     dirpath = path.resolve(dirpath);
     
     if (!dirpath.startsWith(ROOT_PATH)) {
-        console.log("[FolderManager] WARN: dirpath does not start with ROOT_PATH, defaulting to ROOT_PATH");
+        folderManLog.warn("Dirpath does not start with ROOT_PATH, defaulting to ROOT_PATH");
         dirpath = ROOT_PATH;
     }
 
     if (!fs.existsSync(dirpath)) {
-        console.log("[FolderManager] WARN: doesn't exist");
+        folderManLog.warn("Doesn't exist");
         return Data;
     }
 
     if (!fs.lstatSync(dirpath).isDirectory()) {
-        console.log("[FolderManager] WARN: not a directory");
+        folderManLog.warn("Not a directory");
         return Data;
     }
 

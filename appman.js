@@ -12,11 +12,13 @@ var path = require('path');
 const { v4 : uuidv4 } = require('uuid');
 const unzip = require('unzipper');
 const { spawn } = require('child_process');
+const log = require('electron-log');
+const appManLog = log.scope("AppManager");
 
 var progInit = false;
 
 function init(folderman) {
-    console.log("[AppManager] Initialising App Manager ...")
+    appManLog.info("Initialising App Manager ...")
     foldermanInstance = folderman;
     ROOT_PATH = foldermanInstance.returnRootPath();
     APP_PATH = foldermanInstance.returnAppPath();
@@ -26,7 +28,7 @@ function init(folderman) {
 
 async function getAppList() {
     if (!progInit) {
-        console.log("[AppManager] Please run init() before using any other function!");
+        appManLog.error("Please run init() before using any other function!");
         return;
     }
 
@@ -77,26 +79,26 @@ async function _install(url, mode, dest, version) {
         if (mode == "FILE") {
             fs.unlinkSync(dest);
         } else if (mode == "DIR") {
-            fs.rmdirSync(dest);
+            fs.rmSync(dest, {recursive: true});
         }
     }
 
     let installFile = {version: version};
-    console.log("[AppManager] Dest: " + dest);
+    appManLog.info("Dest: " + dest);
 
     if (mode == "FILE") {
         fs.copyFileSync(tmp_loc, dest);
         fs.writeFileSync(dest + ".Install", JSON.stringify(installFile));
-        fs.unlinkSync(tmp_loc);
     } else if (mode == "DIR") {
         let readstream = fs.createReadStream(tmp_loc).pipe(unzip.Extract({path: dest}));
         readstream.on('close', (err) => {
             fs.writeFileSync(path.join(dest, ".Install"), JSON.stringify(installFile));
-            fs.unlinkSync(tmp_loc);
         });
     }
 
-    console.log("[AppManager] Install Successful!");
+    fs.unlinkSync(tmp_loc);
+
+    appManLog.info("Install Successful!");
     return;
 }
 
@@ -134,7 +136,7 @@ async function returnSafeAppList(shellver) {
 
                 let install_path = path.join(APP_PATH, app.InstallPath);
                 if (!install_path.startsWith(APP_PATH)) {
-                    console.log("[AppManager] Invalid install path");
+                    appManLog.error("Invalid install path");
                     continue;
                 }
                 if (fs.existsSync(install_path)) {
@@ -154,7 +156,7 @@ async function returnSafeAppList(shellver) {
                             version = installFile.version;
                         } catch (e) {}
                         if (version == null) {
-                            console.log("[AppManager] Corrupt InstallFile");
+                            appManLog.error("Corrupt InstallFile");
                             continue;
                         }
 
@@ -162,7 +164,7 @@ async function returnSafeAppList(shellver) {
                             appEntry.NeedUpgrade = true;
                         }
                     } else {
-                        console.log("[AppManager] No InstallFile");
+                        appManLog.error("No InstallFile");
                         continue;
                     }
                 }
@@ -218,22 +220,22 @@ async function updateShell(shell_path_dsk) {
 function appExistsLocal(appName) {
     let install_path = path.join(APP_PATH, appName);
     if (!install_path.startsWith(APP_PATH)) {
-        console.log("[AppManager] Invalid install path");
+        appManLog.error("Invalid install path");
         return false;
     }
     if (fs.existsSync(install_path)) {
         return true;
     } else {
-        console.log("[AppManager] App doesn't exist");
+        appManLog.error("App doesn't exist");
         return false;
     }
 }
 
 function uninstallApp(AppName) {
-    console.log("[AppManager] Uninstalling " + AppName);
+    appManLog.info("Uninstalling " + AppName);
     let install_path = path.join(APP_PATH, AppName);
     if (!install_path.startsWith(APP_PATH)) {
-        console.log("[AppManager] Invalid install path");
+        appManLog.error("Invalid install path");
         return;
     }
     if (fs.existsSync(install_path)) {
@@ -246,27 +248,27 @@ function uninstallApp(AppName) {
             }
         }
     } else {
-        console.log("[AppManager] App doesn't exist");
+        appManLog.error("App doesn't exist");
     }
 }
 
 async function install(AppName, ShellVer) {
     if (!progInit) {
-        console.log("[AppManager] Please run init() before using any other function!");
+        appManLog.error("Please run init() before using any other function!");
         return;
     }
 
     let appList = await getAppList();
 
     if (appList[AppName] === undefined) {
-        console.log("[AppManager] Cannot install app '" + AppName + "', doesn't exist.")
+        appManLog.error("Cannot install app '" + AppName + "', doesn't exist.")
         return false;
     }
-    console.log("[AppManager] Downloading application ...");
+    appManLog.info("Downloading application ...");
     let app = appList[AppName];
     let install_path = path.join(APP_PATH, app.InstallPath);
     if (!install_path.startsWith(APP_PATH)) {
-        console.log("[AppManager] Invalid install path");
+        appManLog.error("Invalid install path");
         return;
     }
     let shell_compatible_minimum = app.ShellCompatibleMinimum;
@@ -277,7 +279,7 @@ async function install(AppName, ShellVer) {
         }
     }
     if (!compatible) {
-        console.log("[AppManager] Not compatible");
+        appManLog.error("Not compatible");
         return;
     }
     if (fs.existsSync(install_path)) {
@@ -296,7 +298,7 @@ async function install(AppName, ShellVer) {
                 version = installFile.version;
             } catch (e) {}
             if (version == null) {
-                console.log("[AppManager] Corrupt InstallFile");
+                appManLog.error("Corrupt InstallFile");
                 return;
             }
 
@@ -304,11 +306,11 @@ async function install(AppName, ShellVer) {
                 // UPGRADE
                 await _install(app.FileLink, app.InstallMode, install_path, app.Version);
             } else {
-                console.log("[AppManager] No need to upgrade");
+                appManLog.info("No need to upgrade");
                 return;
             }
         } else {
-            console.log("[AppManager] No InstallFile");
+            appManLog.error("No InstallFile");
             return;
         }
     } else {
@@ -318,7 +320,7 @@ async function install(AppName, ShellVer) {
 }
 
 function getInstalledApplications() {
-    console.log("[AppManager] GetInstalledApps request")
+    appManLog.info("GetInstalledApps request")
     var Applications = [];
     var AvailableApps = foldermanInstance.return_safe_contents(foldermanInstance.realpath_to_relpath(APP_PATH));
     if (AvailableApps.contents.length != 0) {
