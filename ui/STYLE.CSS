@@ -99,8 +99,8 @@ button:focus {
 }
 
 .draggable {
-  width: 600px;
-  height: 300px;
+  width: 800px;
+  height: 600px;
   position: absolute;
   top: 0;
   left: 0;

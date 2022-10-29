@@ -36,6 +36,13 @@ function manageIPC(app, win) {
         return;
     }
 
+    ipcMain.on('GetOnlineAppList', (e, args) => {
+        console.log("[IPCManager] GetOnlineAppList request");
+        appMan.returnSafeAppList().then((applist) => {
+            win.webContents.send("AppList", applist);
+        })
+    });
+
     ipcMain.on('AvailableForUpdates', (e,args) => {
         appMan.checkVersion(SHELL_VERSION).then((result) => {
             if (result) {
@@ -72,10 +79,6 @@ function manageIPC(app, win) {
         exec('shutdown /r /t 0');
     });
 
-    ipcMain.on('GoToMain', (e,args) => {
-        win.loadFile('ui/INDEX.HTML');
-    });
-
     ipcMain.on('RunApp', (e, args) => {
         let RealAppPath = folderMan.relpath_to_realpath(args);
         let Mainfile = "INDEX.HTML";
@@ -110,6 +113,21 @@ function manageIPC(app, win) {
             win.webContents.send("Message", "<h1>Error</h1>We couldn't run that app! (No Mainfile present)");
             return;
         }
+    });
+
+    ipcMain.on('InstallApplication', (e, args) => {
+        console.log("[IPCManager] InstallApp request");
+        appMan.appExists(args).then((result) => {
+            if (result) {
+                dialog.showMessageBox(win, {title: "Install '" + args + "'?", message: "Do you want to install the application '" + args + "'?\nIf you do not remember wanting to install this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
+                    if (data.response == 0) {
+                        appMan.install(args);
+                    }
+                });
+            } else {
+                console.log("[IPCManager] InstallApp request: App does not exist");
+            }
+        })
     });
 
     ipcMain.on('GetApplications', (e, args) => {

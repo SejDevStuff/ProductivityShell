@@ -25,7 +25,7 @@ window.onload = () => {
     window.api.show_available_for_updates();
 
     document.getElementById('_shutdown_').onclick = window.api.shutdown_computer;
-    document.getElementById('_restart_').onclick = window.api.restart_computer;
+    document.getElementById('_reboot_').onclick = window.api.restart_computer;
 }
 
 window.onclick = (e) => {
@@ -68,6 +68,12 @@ window.api.sock_on('RunApp', (e, data) => {
     runApp(name, path, uuid);
 })
 
+let ALLOWED_APP_FUNC = {
+    on: window.api.sock_on,
+    get_online_app_list: window.api.get_online_app_list,
+    install_app: window.api.install_app
+};
+
 function runApp(name, path, uuid) {
     let appWindow = document.createElement('div');
     appWindow.classList.add("draggable");
@@ -90,7 +96,17 @@ function runApp(name, path, uuid) {
     appFrame.allowFullscreen = "";
     appFrame.classList.add("appFrame");
     appFrame.sandbox = "allow-scripts";
+
     appWindow.appendChild(appFrame);
+
+    appFrame.onload = () => {
+        appFrame.contentWindow.window.functions = {};
+        for (const key in ALLOWED_APP_FUNC) {
+            if (ALLOWED_APP_FUNC.hasOwnProperty(key)) {
+                appFrame.contentWindow.window.functions[key] = ALLOWED_APP_FUNC[key];
+            }
+        }
+    };
 
     document.body.appendChild(appWindow);
 

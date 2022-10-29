@@ -35,6 +35,15 @@ async function getAppList() {
     return appDb;
 }
 
+async function appExists(appName) {
+    let appdb = await getAppList();
+    if ((appdb[appName] === undefined) == false) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 async function downloadFile(fileUrl, outputLocationPath) {
     const writer = fs.createWriteStream(outputLocationPath);
 
@@ -99,6 +108,61 @@ async function checkVersion(ver) {
     } else {
         return false;
     }
+}
+
+async function returnSafeAppList() {
+    let appList = await getAppList();
+    let safeAppList = [];
+    for (const key in appList) {
+        if(appList.hasOwnProperty(key)) {
+            let app = appList[key];
+            let appEntry = {
+                Key: key,
+                Name: app.Name || key,
+                Desc: app.Description || "Not provided",
+                Installed: false,
+                NeedUpgrade: false
+            };
+            if (app.Listing == true) {
+                let install_path = path.join(APP_PATH, app.InstallPath);
+                if (!install_path.startsWith(APP_PATH)) {
+                    console.log("[AppManager] Invalid install path");
+                    continue;
+                }
+                if (fs.existsSync(install_path)) {
+                    appEntry.Installed = true;
+
+                    let installFileLoc = "";
+                    if (app.InstallMode == "FILE") {
+                        installFileLoc = install_path + ".Install";
+                    } else if (app.InstallMode == "DIR") {
+                        installFileLoc = path.join(install_path, ".Install");
+                    }
+
+                    if (fs.existsSync(installFileLoc)) {
+                        let version = null;
+                        try {
+                            let installFile = JSON.parse(fs.readFileSync(installFileLoc));
+                            version = installFile.version;
+                        } catch (e) {}
+                        if (version == null) {
+                            console.log("[AppManager] Corrupt InstallFile");
+                            continue;
+                        }
+
+                        if (app.Version > version) {
+                            appEntry.NeedUpgrade = true;
+                        }
+                    } else {
+                        console.log("[AppManager] No InstallFile");
+                        continue;
+                    }
+                }
+                safeAppList.push(appEntry);
+            }
+        }
+    }
+    return safeAppList;
 }
 
 async function updateShell(shell_path_dsk) {
@@ -178,5 +242,7 @@ module.exports = {
     init, 
     install,
     checkVersion,
-    updateShell
+    updateShell,
+    returnSafeAppList,
+    appExists
 }
