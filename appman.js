@@ -110,7 +110,7 @@ async function checkVersion(ver) {
     }
 }
 
-async function returnSafeAppList() {
+async function returnSafeAppList(shellver) {
     let appList = await getAppList();
     let safeAppList = [];
     for (const key in appList) {
@@ -121,9 +121,17 @@ async function returnSafeAppList() {
                 Name: app.Name || key,
                 Desc: app.Description || "Not provided",
                 Installed: false,
-                NeedUpgrade: false
+                NeedUpgrade: false,
+                Compatible: false
             };
             if (app.Listing == true) {
+                let shell_compatible_minimum = app.ShellCompatibleMinimum;
+                if ((shell_compatible_minimum === null) == false) {
+                    if (shellver >= shell_compatible_minimum) {
+                        appEntry.Compatible = true;
+                    }
+                }
+
                 let install_path = path.join(APP_PATH, app.InstallPath);
                 if (!install_path.startsWith(APP_PATH)) {
                     console.log("[AppManager] Invalid install path");
@@ -162,6 +170,31 @@ async function returnSafeAppList() {
             }
         }
     }
+    let installedApps = fs.readdirSync(APP_PATH);
+    for (let i = 0; i < installedApps.length; i++) {
+        let app = installedApps[i];
+        if (app.endsWith(".Install")) {
+            continue;
+        }
+        let found = false;
+        for (let j = 0; j < safeAppList.length; j++) {
+            if (safeAppList[j].Key == app) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            let appEntry = {
+                Key: app,
+                Name: app,
+                Desc: "Locally installed file",
+                Installed: true,
+                NeedUpgrade: false,
+                Compatible: true
+            };
+            safeAppList.push(appEntry)
+        }
+    }
     return safeAppList;
 }
 
@@ -182,7 +215,42 @@ async function updateShell(shell_path_dsk) {
     }
 }
 
-async function install(AppName) {
+function appExistsLocal(appName) {
+    let install_path = path.join(APP_PATH, appName);
+    if (!install_path.startsWith(APP_PATH)) {
+        console.log("[AppManager] Invalid install path");
+        return false;
+    }
+    if (fs.existsSync(install_path)) {
+        return true;
+    } else {
+        console.log("[AppManager] App doesn't exist");
+        return false;
+    }
+}
+
+function uninstallApp(AppName) {
+    console.log("[AppManager] Uninstalling " + AppName);
+    let install_path = path.join(APP_PATH, AppName);
+    if (!install_path.startsWith(APP_PATH)) {
+        console.log("[AppManager] Invalid install path");
+        return;
+    }
+    if (fs.existsSync(install_path)) {
+        if (fs.lstatSync(install_path).isDirectory()) {
+            fs.rmSync(install_path, {recursive: true});
+        } else if (fs.lstatSync(install_path).isFile()) {
+            fs.unlinkSync(install_path);
+            if (fs.existsSync(install_path + ".Install")) {
+                fs.unlinkSync(install_path + ".Install");
+            }
+        }
+    } else {
+        console.log("[AppManager] App doesn't exist");
+    }
+}
+
+async function install(AppName, ShellVer) {
     if (!progInit) {
         console.log("[AppManager] Please run init() before using any other function!");
         return;
@@ -199,6 +267,17 @@ async function install(AppName) {
     let install_path = path.join(APP_PATH, app.InstallPath);
     if (!install_path.startsWith(APP_PATH)) {
         console.log("[AppManager] Invalid install path");
+        return;
+    }
+    let shell_compatible_minimum = app.ShellCompatibleMinimum;
+    let compatible = false;
+    if ((shell_compatible_minimum === null) == false) {
+        if (ShellVer >= shell_compatible_minimum) {
+            compatible = true;
+        }
+    }
+    if (!compatible) {
+        console.log("[AppManager] Not compatible");
         return;
     }
     if (fs.existsSync(install_path)) {
@@ -238,11 +317,41 @@ async function install(AppName) {
     }
 }
 
+function getInstalledApplications() {
+    var Applications = [];
+    var AvailableApps = foldermanInstance.return_safe_contents(foldermanInstance.realpath_to_relpath(APP_PATH));
+    if (AvailableApps.contents.length != 0) {
+        for (let i = 0; i < AvailableApps.contents.length; i++) {
+            let App = AvailableApps.contents[i];
+            let AppObj = {IconPath: "/Applications/Unknown.png", Name: App.rel_f_path, Path: App.rel_f_path};
+            if (App.type == 1) {
+                let RealAppPath = foldermanInstance.relpath_to_realpath(App.rel_f_path);
+                if (fs.existsSync(path.join(RealAppPath, "Icon.png"))) {
+                    AppObj.IconPath = foldermanInstance.realpath_to_relpath(path.join(RealAppPath, "Icon.png"));
+                }
+                if (fs.existsSync(path.join(RealAppPath, "Info.json"))) {
+                    try {
+                        let JSONData = JSON.parse(fs.readFileSync(path.join(RealAppPath, "Info.json")));
+                        if ((JSONData["AppName"] === undefined) == false) {
+                            AppObj.Name = JSONData["AppName"];
+                        }
+                    } catch (e) {}
+                }
+                Applications.push(AppObj);
+            }
+        }
+    }
+    return Applications;
+}
+
 module.exports = {
     init, 
     install,
     checkVersion,
     updateShell,
     returnSafeAppList,
-    appExists
+    appExists,
+    uninstallApp,
+    appExistsLocal,
+    getInstalledApplications
 }

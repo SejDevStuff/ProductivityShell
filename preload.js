@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('api', {
     restart_computer: () => ipcRenderer.send('RestartComputer'),
 
     get_online_app_list: () => ipcRenderer.send('GetOnlineAppList'),
-    install_app: (appName) => ipcRenderer.send('InstallApplication', appName)
+    install_app: (appName) => ipcRenderer.send('InstallApplication', appName),
+    uninstall_app: (appName) => { ipcRenderer.send('UninstallApplication', appName)}
 })

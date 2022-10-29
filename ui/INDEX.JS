@@ -71,7 +71,8 @@ window.api.sock_on('RunApp', (e, data) => {
 let ALLOWED_APP_FUNC = {
     on: window.api.sock_on,
     get_online_app_list: window.api.get_online_app_list,
-    install_app: window.api.install_app
+    install_app: window.api.install_app,
+    uninstall_app: window.api.uninstall_app
 };
 
 function runApp(name, path, uuid) {
@@ -106,6 +107,7 @@ function runApp(name, path, uuid) {
                 appFrame.contentWindow.window.functions[key] = ALLOWED_APP_FUNC[key];
             }
         }
+        appFrame.contentWindow.postMessage("AppReady", "*");
     };
 
     document.body.appendChild(appWindow);

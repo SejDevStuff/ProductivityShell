@@ -19,8 +19,8 @@ async function init(app) {
     folderMan.init();
     appMan.init(folderMan);
 
-    appMan.install("Unknown.png");
-    appMan.install("ApplicationStore");
+    appMan.install("Unknown.png", SHELL_VERSION);
+    appMan.install("ApplicationStore", SHELL_VERSION);
 
     protocol.registerFileProtocol('atom', (request, callback) => {
         const filePath = folderMan.relpath_to_realpath(request.url.slice('atom://'.length));
@@ -38,7 +38,7 @@ function manageIPC(app, win) {
 
     ipcMain.on('GetOnlineAppList', (e, args) => {
         console.log("[IPCManager] GetOnlineAppList request");
-        appMan.returnSafeAppList().then((applist) => {
+        appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
             win.webContents.send("AppList", applist);
         })
     });
@@ -121,7 +121,12 @@ function manageIPC(app, win) {
             if (result) {
                 dialog.showMessageBox(win, {title: "Install '" + args + "'?", message: "Do you want to install the application '" + args + "'?\nIf you do not remember wanting to install this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
                     if (data.response == 0) {
-                        appMan.install(args);
+                        appMan.install(args, SHELL_VERSION);
+                        let Applications = appMan.getInstalledApplications();
+                        win.webContents.send('ApplicationsList', Applications);
+                        appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
+                            win.webContents.send("AppList", applist);
+                        })
                     }
                 });
             } else {
@@ -130,30 +135,23 @@ function manageIPC(app, win) {
         })
     });
 
-    ipcMain.on('GetApplications', (e, args) => {
-        var Applications = [];
-        var AvailableApps = folderMan.return_safe_contents("/Applications");
-        if (AvailableApps.contents.length != 0) {
-            for (let i = 0; i < AvailableApps.contents.length; i++) {
-                let App = AvailableApps.contents[i];
-                let AppObj = {IconPath: "/Applications/Unknown.png", Name: App.rel_f_path, Path: App.rel_f_path};
-                if (App.type == 1) {
-                    let RealAppPath = folderMan.relpath_to_realpath(App.rel_f_path);
-                    if (fs.existsSync(path.join(RealAppPath, "Icon.png"))) {
-                        AppObj.IconPath = folderMan.realpath_to_relpath(path.join(RealAppPath, "Icon.png"));
-                    }
-                    if (fs.existsSync(path.join(RealAppPath, "Info.json"))) {
-                        try {
-                            let JSONData = JSON.parse(fs.readFileSync(path.join(RealAppPath, "Info.json")));
-                            if ((JSONData["AppName"] === undefined) == false) {
-                                AppObj.Name = JSONData["AppName"];
-                            }
-                        } catch (e) {}
-                    }
-                    Applications.push(AppObj);
+    ipcMain.on('UninstallApplication', (e, args) => {
+        if (appMan.appExistsLocal(args)) {
+            dialog.showMessageBox(win, {title: "Uninstall '" + args + "'?", message: "Do you want to remove the application '" + args + "'?\nIf you do not remember wanting to remove this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
+                if (data.response == 0) {
+                    appMan.uninstallApp(args);
+                    let Applications = appMan.getInstalledApplications();
+                    win.webContents.send('ApplicationsList', Applications);
+                    appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
+                        win.webContents.send("AppList", applist);
+                    })
                 }
-            }
+            });
         }
+    })
+
+    ipcMain.on('GetApplications', (e, args) => {
+        let Applications = appMan.getInstalledApplications();
         win.webContents.send('ApplicationsList', Applications);
     });
 }
