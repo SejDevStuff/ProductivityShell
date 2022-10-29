@@ -89,14 +89,14 @@ async function _install(url, mode, dest, version) {
     if (mode == "FILE") {
         fs.copyFileSync(tmp_loc, dest);
         fs.writeFileSync(dest + ".Install", JSON.stringify(installFile));
+        fs.unlinkSync(tmp_loc);
     } else if (mode == "DIR") {
         let readstream = fs.createReadStream(tmp_loc).pipe(unzip.Extract({path: dest}));
         readstream.on('close', (err) => {
             fs.writeFileSync(path.join(dest, ".Install"), JSON.stringify(installFile));
+            fs.unlinkSync(tmp_loc);
         });
     }
-
-    fs.unlinkSync(tmp_loc);
 
     appManLog.info("Install Successful!");
     return;
