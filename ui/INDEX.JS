@@ -2,7 +2,7 @@ window.onload = () => {
 
     document.getElementById("search_input").onkeyup = filterAppList;
 
-    window.api.get_application_list();
+    //window.api.get_application_list();
     window.api.sock_on('ApplicationsList', (e, data) => {
         let appBox = document.getElementById("app_box");
         if (data.length == 0) {

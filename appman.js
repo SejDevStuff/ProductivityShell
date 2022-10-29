@@ -126,7 +126,7 @@ async function returnSafeAppList(shellver) {
             };
             if (app.Listing == true) {
                 let shell_compatible_minimum = app.ShellCompatibleMinimum;
-                if ((shell_compatible_minimum === null) == false) {
+                if ((shell_compatible_minimum === undefined) == false) {
                     if (shellver >= shell_compatible_minimum) {
                         appEntry.Compatible = true;
                     }
@@ -187,7 +187,7 @@ async function returnSafeAppList(shellver) {
             let appEntry = {
                 Key: app,
                 Name: app,
-                Desc: "Locally installed file",
+                Desc: "Locally installed application",
                 Installed: true,
                 NeedUpgrade: false,
                 Compatible: true
@@ -271,7 +271,7 @@ async function install(AppName, ShellVer) {
     }
     let shell_compatible_minimum = app.ShellCompatibleMinimum;
     let compatible = false;
-    if ((shell_compatible_minimum === null) == false) {
+    if ((shell_compatible_minimum === undefined) == false) {
         if (ShellVer >= shell_compatible_minimum) {
             compatible = true;
         }
@@ -318,6 +318,7 @@ async function install(AppName, ShellVer) {
 }
 
 function getInstalledApplications() {
+    console.log("[AppManager] GetInstalledApps request")
     var Applications = [];
     var AvailableApps = foldermanInstance.return_safe_contents(foldermanInstance.realpath_to_relpath(APP_PATH));
     if (AvailableApps.contents.length != 0) {

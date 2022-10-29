@@ -19,9 +19,6 @@ async function init(app) {
     folderMan.init();
     appMan.init(folderMan);
 
-    appMan.install("Unknown.png", SHELL_VERSION);
-    appMan.install("ApplicationStore", SHELL_VERSION);
-
     protocol.registerFileProtocol('atom', (request, callback) => {
         const filePath = folderMan.relpath_to_realpath(request.url.slice('atom://'.length));
         callback(filePath);
@@ -35,6 +32,18 @@ function manageIPC(app, win) {
         console.log("[IPCManager] Please run init() before using any other function!");
         return;
     }
+
+    appMan.install("Unknown.png", SHELL_VERSION).then((res) => {
+        appMan.install("ApplicationStore", SHELL_VERSION).then((res) => {
+            setTimeout(() => {
+                let Applications = appMan.getInstalledApplications();
+                win.webContents.send('ApplicationsList', Applications);
+                appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
+                    win.webContents.send("AppList", applist);
+                })
+            }, 500)
+        });
+    });
 
     ipcMain.on('GetOnlineAppList', (e, args) => {
         console.log("[IPCManager] GetOnlineAppList request");
@@ -121,12 +130,15 @@ function manageIPC(app, win) {
             if (result) {
                 dialog.showMessageBox(win, {title: "Install '" + args + "'?", message: "Do you want to install the application '" + args + "'?\nIf you do not remember wanting to install this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
                     if (data.response == 0) {
-                        appMan.install(args, SHELL_VERSION);
-                        let Applications = appMan.getInstalledApplications();
-                        win.webContents.send('ApplicationsList', Applications);
-                        appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
-                            win.webContents.send("AppList", applist);
-                        })
+                        appMan.install(args, SHELL_VERSION).then((result) => {
+                            setTimeout(() => {
+                                let Applications = appMan.getInstalledApplications();
+                                win.webContents.send('ApplicationsList', Applications);
+                                appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
+                                    win.webContents.send("AppList", applist);
+                                })
+                            }, 500)
+                        });
                     }
                 });
             } else {
