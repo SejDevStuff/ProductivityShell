@@ -26,6 +26,13 @@ window.onload = () => {
 
     document.getElementById('_shutdown_').onclick = window.api.shutdown_computer;
     document.getElementById('_reboot_').onclick = window.api.restart_computer;
+    document.getElementById("refresh_app_list").onclick = refreshAppList;
+}
+
+function refreshAppList() {
+    let appBox = document.getElementById("app_box");
+    appBox.innerHTML = "Loading applications ...";
+    window.api.get_application_list();
 }
 
 window.onclick = (e) => {

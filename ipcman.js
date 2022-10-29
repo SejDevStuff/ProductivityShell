@@ -48,7 +48,7 @@ function manageIPC(app, win) {
     });
 
     ipcMain.on('GetOnlineAppList', (e, args) => {
-        ipcManLog.error("GetOnlineAppList request");
+        ipcManLog.info("GetOnlineAppList request");
         appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
             win.webContents.send("AppList", applist);
         })
@@ -152,7 +152,7 @@ function manageIPC(app, win) {
     });
 
     ipcMain.on('UninstallApplication', (e, args) => {
-        ipcManLog.info("InstallApp request");
+        ipcManLog.info("UninstallApp request");
         if (appMan.appExistsLocal(args)) {
             dialog.showMessageBox(win, {title: "Uninstall '" + args + "'?", message: "Do you want to remove the application '" + args + "'?\nIf you do not remember wanting to remove this application, click on No.", buttons: ["Yes", "No"]}).then((data) => {
                 if (data.response == 0) {

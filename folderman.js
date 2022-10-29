@@ -76,7 +76,7 @@ function realpath_to_relpath(realpath) {
         folderManLog.error("Please run init() before using any other function!");
         return;
     }
-    return path.resolve(realpath.replace(ROOT_PATH, "/"));
+    return realpath.replace(ROOT_PATH, "/");
 }
 
 function return_safe_contents(dirpath) {
