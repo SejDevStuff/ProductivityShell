@@ -1,6 +1,7 @@
 var ROOT_PATH = "";
 var APP_PATH = "";
 var APP_CACHE_PATH = "";
+var APP_DATA_PATH = "";
 
 var APP_REPO = "http://prodsuite-appstore.glitch.me/";
 
@@ -23,6 +24,7 @@ function init(folderman) {
     ROOT_PATH = foldermanInstance.returnRootPath();
     APP_PATH = foldermanInstance.returnAppPath();
     APP_CACHE_PATH = foldermanInstance.returnAppCachePath();
+    APP_DATA_PATH = foldermanInstance.returnAppDataPath();
     progInit = true;
 }
 

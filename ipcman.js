@@ -12,7 +12,7 @@ const appMan = require('./appman');
 var progInit = false;
 
 // ============================ //
-let SHELL_VERSION = 3;
+let SHELL_VERSION = 5;
 let SHELL_PATH = null;
 // ============================ //
 
@@ -27,6 +27,14 @@ async function init(app) {
     })
     
     progInit = true;
+}
+
+function nullOrUndefined(path) {
+    if (path === undefined || path === null) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 function manageIPC(app, win) {
@@ -54,6 +62,38 @@ function manageIPC(app, win) {
         })
     });
 
+    ipcMain.on('ReadFile', (e, args) => {
+        ipcManLog.info("ReadFile request");
+        win.webContents.send("FileContents", folderMan.read_file_relpath(args));
+    });
+
+    ipcMain.on('WriteFile', (e, args) => {
+        ipcManLog.info("WriteFile request");
+        if (nullOrUndefined(args.path) || nullOrUndefined(args.data)) {
+            return;
+        }
+        folderMan.write_file_relpath(args.path, args.data);
+    });
+
+    ipcMain.on('ReadDirectory', (e, args) => {
+        ipcManLog.info("ReadDirectory request");
+        if (nullOrUndefined(args)) return;
+        let dirC = folderMan.return_safe_contents(args);
+        win.webContents.send("DirContents", dirC);
+    });
+
+    ipcMain.on("MakeDirectory", (e, args) => {
+        ipcManLog.info("MakeDirectory request");
+        if (nullOrUndefined(args)) return;
+        folderMan.make_dir_relpath(args);
+    });
+
+    ipcMain.on("Remove", (e, args) => {
+        ipcManLog.info("Remove request");
+        if (nullOrUndefined(args)) return;
+        folderMan.remove_relpath(args);
+    });
+
     ipcMain.on('AvailableForUpdates', (e,args) => {
         appMan.checkVersion(SHELL_VERSION).then((result) => {
             if (result) {
@@ -67,6 +107,7 @@ function manageIPC(app, win) {
                                 return;
                             }
                             SHELL_PATH = path.filePaths[0];
+                            win.webContents.send("Message", "<h1>Updating...</h1>Give us a moment while we update your Shell. Your computer should automatically restart after the update.");
                             appMan.updateShell(SHELL_PATH).then((result) => {
                                 if (result) {
                                     process.exit();
@@ -96,7 +137,8 @@ function manageIPC(app, win) {
         let RealAppPath = folderMan.relpath_to_realpath(args);
         let Mainfile = "INDEX.HTML";
 
-        ipcManLog.info("Trying to run app: " + path.join(RealAppPath, Mainfile));
+        let appKey = args.replace(path.dirname(args), "").replace("/", "").replace("\\", "");
+        ipcManLog.info("Trying to run app: " + appKey);
 
         if (fs.existsSync(path.join(RealAppPath, "Info.json"))) {
             try {
@@ -119,7 +161,7 @@ function manageIPC(app, win) {
                     }
                 } catch (e) {}
             }
-            win.webContents.send('RunApp', {name: name, uuid: uuid, path: app_path});
+            win.webContents.send('RunApp', {name: name, uuid: uuid, path: app_path, key: appKey});
             //win.loadFile('ui/RUNFILE.HTML');
             return;
         } else {

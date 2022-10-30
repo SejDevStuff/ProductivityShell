@@ -2,7 +2,6 @@ window.onload = () => {
 
     document.getElementById("search_input").onkeyup = filterAppList;
 
-    //window.api.get_application_list();
     window.api.sock_on('ApplicationsList', (e, data) => {
         let appBox = document.getElementById("app_box");
         if (data.length == 0) {
@@ -68,21 +67,27 @@ window.api.sock_on('RunApp', (e, data) => {
     let uuid = data.uuid;
     let name = data.name;
     let path = data.path;
-    if (uuid === undefined || name === undefined || path === undefined) {
+    let key = data.key;
+    if (uuid === undefined || name === undefined || path === undefined || key === undefined) {
         msgBox("Oops! We couldn't run this app. (unknown parameters)");
         return;
     }
-    runApp(name, path, uuid);
+    runApp(name, path, uuid, key);
 })
 
 let ALLOWED_APP_FUNC = {
     on: window.api.sock_on,
     get_online_app_list: window.api.get_online_app_list,
     install_app: window.api.install_app,
-    uninstall_app: window.api.uninstall_app
+    uninstall_app: window.api.uninstall_app,
+    read_dir: window.api.read_dir,
+    make_dir: window.api.make_dir,
+    read_file: window.api.read_file,
+    write_file: window.api.write_file,
+    remove: window.api.remove
 };
 
-function runApp(name, path, uuid) {
+function runApp(name, path, uuid, key) {
     let appWindow = document.createElement('div');
     appWindow.classList.add("draggable");
     appWindow.id = uuid;

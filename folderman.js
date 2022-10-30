@@ -6,6 +6,7 @@ const folderManLog = log.scope("FolderManager");
 var ROOT_PATH = "";
 var APP_PATH = "";
 var APP_CACHE_PATH = "";
+var APP_DATA_PATH = "";
 
 var progInit = false;
 
@@ -28,10 +29,15 @@ function init() {
         fs.mkdirSync(APP_CACHE_PATH);
     }
 
+    APP_DATA_PATH = path.join(ROOT_PATH, "ApplicationData");
+    if (!fs.existsSync(APP_DATA_PATH)) {
+        fs.mkdirSync(APP_DATA_PATH);
+    }
+
     progInit = true;
 }
 
-function make_dir(dirpath) {
+function make_dir_relpath(dirpath) {
     if (!progInit) {
         folderManLog.error("Please run init() before using any other function!");
         return;
@@ -56,6 +62,58 @@ function make_dir(dirpath) {
         fs.mkdirSync(dirpath);
     } catch (e) {
         folderManLog.error("Cannot make directory");
+    }
+}
+
+function remove_relpath(relpath) {
+    if (!progInit) {
+        folderManLog.error("Please run init() before using any other function!");
+        return;
+    }
+    let realpath = path.resolve(path.join(ROOT_PATH, relpath));
+    if (!realpath.startsWith(ROOT_PATH)) {
+        folderManLog.error("Invalid RELPATH for removing");
+        return false;
+    }
+    if (fs.lstatSync(realpath).isDirectory() == true) {
+        fs.rmSync(realpath, {recursive: true});
+    } else if (fs.lstatSync(realpath).isFile() == true) {
+        fs.unlinkSync(realpath);
+    }
+}
+
+function write_file_relpath(relpath, data) {
+    if (!progInit) {
+        folderManLog.error("Please run init() before using any other function!");
+        return;
+    }
+    let realpath = path.resolve(path.join(ROOT_PATH, relpath));
+    if (!realpath.startsWith(ROOT_PATH)) {
+        folderManLog.error("Invalid RELPATH for writing");
+        return false;
+    }
+    try {
+        fs.writeFileSync(relpath, data);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function read_file_relpath(relpath) {
+    if (!progInit) {
+        folderManLog.error("Please run init() before using any other function!");
+        return;
+    }
+    let realpath = path.resolve(path.join(ROOT_PATH, relpath));
+    if (!realpath.startsWith(ROOT_PATH)) {
+        folderManLog.error("Invalid RELPATH for reading");
+        return null;
+    }
+    try {
+        return fs.readFileSync(relpath);
+    } catch (e) {
+        return null;
     }
 }
 
@@ -116,10 +174,10 @@ function return_safe_contents(dirpath) {
         var _file = path.join(dirpath, contents[i]);
 
         if (fs.lstatSync(_file).isDirectory() == true) {
-            Data.contents.push({ type: 1, rel_f_path: path.resolve(_file.replace(ROOT_PATH, "/")), f_name: path.basename(_file) });
+            Data.contents.push({ type: 1, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
         } else if (fs.lstatSync(_file).isFile() == true) {
             if (_file.endsWith(".rtf")) {
-                Data.contents.push({ type: 0, rel_f_path: path.resolve(_file.replace(ROOT_PATH, "/")), f_name: path.basename(_file) });
+                Data.contents.push({ type: 0, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
             }
         }
     }
@@ -141,13 +199,21 @@ function returnRootPath() {
     return ROOT_PATH;
 }
 
+function returnAppDataPath() {
+    return APP_DATA_PATH;
+}
+
 module.exports = {
     return_safe_contents,
     init,
-    make_dir,
+    make_dir_relpath,
+    write_file_relpath,
+    read_file_relpath,
+    remove_relpath,
     relpath_to_realpath,
     realpath_to_relpath,
     returnAppPath,
     returnAppCachePath,
-    returnRootPath
+    returnRootPath,
+    returnAppDataPath
 }

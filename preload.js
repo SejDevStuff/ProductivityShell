@@ -10,5 +10,12 @@ contextBridge.exposeInMainWorld('api', {
 
     get_online_app_list: () => ipcRenderer.send('GetOnlineAppList'),
     install_app: (appName) => ipcRenderer.send('InstallApplication', appName),
-    uninstall_app: (appName) => { ipcRenderer.send('UninstallApplication', appName)}
+    uninstall_app: (appName) => ipcRenderer.send('UninstallApplication', appName),
+
+    // fs
+    read_file: (filepath) => ipcRenderer.send('ReadFile', filepath),
+    write_file: (filepath, data) => ipcRenderer.send('WriteFile', {path: filepath, data: data}),
+    read_dir: (dirpath) => ipcRenderer.send("ReadDirectory", dirpath),
+    make_dir: (dirpath) => ipcRenderer.send("MakeDirectory", dirpath),
+    remove: (path) => ipcRenderer.send('Remove', path)
 })
