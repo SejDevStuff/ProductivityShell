@@ -67,6 +67,8 @@ function make_dir_relpath(dirpath) {
 
     folderManLog.info("Making path " + dirpath);
 
+    dirpath = formatPath(dirpath);
+
     dirpath = path.join(ROOT_PATH, dirpath);
     dirpath = path.resolve(dirpath);
 
@@ -94,6 +96,9 @@ function copy_file_relpath(relpath_src, relpath_dest) {
         folderManLog.error("Please run init() before using any other function!");
         return false;
     }
+    relpath_src = formatPath(relpath_src);
+    relpath_dest = formatPath(relpath_dest);
+
     relpath_src = path.join(ROOT_PATH, relpath_src);
     relpath_src = path.resolve(relpath_src);
 
@@ -134,6 +139,9 @@ function mv_file_relpath(relpath_src, relpath_dest) {
         folderManLog.error("Please run init() before using any other function!");
         return false;
     }
+    relpath_src = formatPath(relpath_src);
+    relpath_dest = formatPath(relpath_dest);
+
     relpath_src = path.join(ROOT_PATH, relpath_src);
     relpath_src = path.resolve(relpath_src);
 
@@ -179,6 +187,7 @@ function remove_relpath(relpath) {
         folderManLog.error("Please run init() before using any other function!");
         return false;
     }
+    relpath = formatPath(relpath);
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         folderManLog.error("Invalid RELPATH for removing");
@@ -203,6 +212,7 @@ function write_file_relpath(relpath, data) {
         folderManLog.error("Please run init() before using any other function!");
         return false;
     }
+    relpath = formatPath(relpath);
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         folderManLog.error("Invalid RELPATH for writing");
@@ -225,6 +235,7 @@ function read_file_relpath(relpath) {
         folderManLog.error("Please run init() before using any other function!");
         return;
     }
+    relpath = formatPath(relpath);
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         folderManLog.error("Invalid RELPATH for reading");
@@ -242,6 +253,7 @@ function relpath_to_realpath(relpath) {
         folderManLog.error("Please run init() before using any other function!");
         return;
     }
+    relpath = formatPath(relpath);
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         realpath = ROOT_PATH;
@@ -254,7 +266,11 @@ function realpath_to_relpath(realpath) {
         folderManLog.error("Please run init() before using any other function!");
         return;
     }
-    return realpath.replace(ROOT_PATH, "/");
+    return formatPath(realpath.replace(ROOT_PATH, "/"));
+}
+
+function formatPath(_path) {
+    return _path.replaceAll(path.sep, "/").replaceAll("//", "/");
 }
 
 function return_safe_contents(dirpath) {
@@ -268,6 +284,7 @@ function return_safe_contents(dirpath) {
         contents: []
     };
 
+    dirpath = formatPath(dirpath);
     dirpath = path.join(ROOT_PATH, dirpath);
     dirpath = path.resolve(dirpath);
     
@@ -292,13 +309,13 @@ function return_safe_contents(dirpath) {
         var _file = path.join(dirpath, contents[i]);
 
         if (fs.lstatSync(_file).isDirectory() == true) {
-            Data.contents.push({ type: 1, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
+            Data.contents.push({ type: 1, rel_f_path: formatPath(_file.replace(ROOT_PATH, "/")), f_name: path.basename(_file) });
         } else if (fs.lstatSync(_file).isFile() == true) {
-            Data.contents.push({ type: 0, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
+            Data.contents.push({ type: 0, rel_f_path: formatPath(_file.replace(ROOT_PATH, "/")), f_name: path.basename(_file) });
         }
     }
 
-    Data._dpath = dirpath.replace(ROOT_PATH, "/");
+    Data._dpath = formatPath(dirpath.replace(ROOT_PATH, "/"));
 
     return Data;
 }

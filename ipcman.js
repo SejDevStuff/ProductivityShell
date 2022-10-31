@@ -172,7 +172,7 @@ function manageIPC(app, win) {
                                 return;
                             }
                             SHELL_PATH = path.filePaths[0];
-                            win.webContents.send("UnclosableModal", "<h1>Updating...</h1>Give us a moment while we update your Shell. Your computer should automatically restart after the update.");
+                            win.webContents.send("Message", "<h1>Updating...</h1>Give us a moment while we update your Shell. Your computer should automatically restart after the update.");
                             appMan.updateShell(SHELL_PATH).then((result) => {
                                 if (result) {
                                     process.exit();
