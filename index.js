@@ -2,10 +2,15 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const ipcmanager = require('./ipcman');
 let folderman = require('./folderman');
+let appMan = require('./appman');
 const log = require('electron-log');
 const indexLog = log.scope("MAIN_THREAD");
 
 var mainWindow;
+
+//---//
+const SHELL_VERSION = 5;
+//---//
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -25,12 +30,24 @@ function hiccupChecker() {
     indexLog.error("ERR! Missing folders. Invoking a hiccup ...");
     mainWindow.webContents.send("Hiccup");
     folderman.init();
-    mainWindow.webContents.send("HiccupEnd");
+    appMan.init(folderman);
+    appMan.install("Unknown.png", SHELL_VERSION).then((res) => {
+    appMan.install("ApplicationStore", SHELL_VERSION).then((res) => {
+      setTimeout(() => {
+          let Applications = appMan.getInstalledApplications();
+          mainWindow.webContents.send('ApplicationsList', Applications);
+          appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
+            mainWindow.webContents.send("AppList", {data: applist, token: "*"});
+          })
+          mainWindow.webContents.send("HiccupEnd");
+        }, 500)
+      });
+    });
   }
 }
 
 app.whenReady().then(() => {
-  ipcmanager.init(app).then((result) => {
+  ipcmanager.init(app, SHELL_VERSION).then((result) => {
     createWindow();
     try {
       ipcmanager.manageIPC(app, mainWindow);

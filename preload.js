@@ -17,5 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     write_file: (filepath, data, submission_token) => ipcRenderer.send('WriteFile', {path: filepath, data: data, token: submission_token}),
     read_dir: (dirpath, submission_token) => ipcRenderer.send("ReadDirectory", {path: dirpath, token: submission_token}),
     make_dir: (dirpath, submission_token) => ipcRenderer.send("MakeDirectory", {path: dirpath, token: submission_token}),
-    remove: (path, submission_token) => ipcRenderer.send('Remove', {path: path, token: submission_token})
+    remove: (path, submission_token) => ipcRenderer.send('Remove', {path: path, token: submission_token}),
+    move_file: (src, dest, submission_token) => ipcRenderer.send('MoveFile', {src: src, dest: dest, token: submission_token}),
+    copy_file: (src, dest, submission_token) => ipcRenderer.send("CopyFile", {src: src, dest: dest, token: submission_token})
 })

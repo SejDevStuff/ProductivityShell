@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const fse = require('fs-extra');
 const log = require('electron-log');
 const folderManLog = log.scope("FolderManager");
 
@@ -88,6 +89,91 @@ function make_dir_relpath(dirpath) {
     }
 }
 
+function copy_file_relpath(relpath_src, relpath_dest) {
+    if (!progInit) {
+        folderManLog.error("Please run init() before using any other function!");
+        return false;
+    }
+    relpath_src = path.join(ROOT_PATH, relpath_src);
+    relpath_src = path.resolve(relpath_src);
+
+    relpath_dest = path.join(ROOT_PATH, relpath_dest);
+    relpath_dest = path.resolve(relpath_dest);
+
+    if (!relpath_src.startsWith(ROOT_PATH) && !relpath_dest.startsWith(ROOT_PATH)) {
+        folderManLog.warn("SRC and/or DEST does not start with ROOT_PATH");
+        return false;
+    }
+
+    if (relpath_dest.startsWith(relpath_src)) {
+        folderManLog.warn("Destination cannot be inside source!");
+        return false;
+    }
+
+    if (!fs.existsSync(relpath_src)) {
+        folderManLog.warn("Source does not exist");
+        return false;
+    }
+
+    if (fs.existsSync(relpath_dest)) {
+        folderManLog.warn("Destination already exists");
+        return false;
+    }
+
+    try {
+        fse.copySync(relpath_src, relpath_dest);
+        return true;
+    } catch (e) {
+        folderManLog.error(e);
+        return false;
+    }
+}
+
+function mv_file_relpath(relpath_src, relpath_dest) {
+    if (!progInit) {
+        folderManLog.error("Please run init() before using any other function!");
+        return false;
+    }
+    relpath_src = path.join(ROOT_PATH, relpath_src);
+    relpath_src = path.resolve(relpath_src);
+
+    relpath_dest = path.join(ROOT_PATH, relpath_dest);
+    relpath_dest = path.resolve(relpath_dest);
+
+    if (!relpath_src.startsWith(ROOT_PATH) && !relpath_dest.startsWith(ROOT_PATH)) {
+        folderManLog.warn("SRC and/or DEST does not start with ROOT_PATH");
+        return false;
+    }
+
+    if (relpath_dest.startsWith(relpath_src)) {
+        folderManLog.warn("Destination cannot be inside source!");
+        return false;
+    }
+
+    if (!fs.existsSync(relpath_src)) {
+        folderManLog.warn("Source does not exist");
+        return false;
+    }
+
+    if (fs.existsSync(relpath_dest)) {
+        folderManLog.warn("Destination already exists");
+        return false;
+    }
+
+    try {
+        fse.copySync(relpath_src, relpath_dest);
+        if (fs.lstatSync(relpath_src).isFile() == true) {
+            fs.unlinkSync(relpath_src);
+        } else if (fs.lstatSync(relpath_src).isDirectory() == true) {
+            fs.rmSync(relpath_src, {recursive: true});
+        }
+        return true;
+    } catch (e) {
+        folderManLog.error(e);
+        return false;
+    }
+}
+
 function remove_relpath(relpath) {
     if (!progInit) {
         folderManLog.error("Please run init() before using any other function!");
@@ -107,6 +193,7 @@ function remove_relpath(relpath) {
             return true;
         }
     } catch (e) {
+        folderManLog.error(e);
         return false;
     }
 }
@@ -122,13 +209,11 @@ function write_file_relpath(relpath, data) {
         return false;
     }
     if (fs.existsSync(realpath)) {
-        if (!fs.lstatSync(realpath).isFile()) {
-            folderManLog.error("Path exists and is not a file");
-            return false;
-        }
+        folderManLog.error("Path exists");
+        return false;
     }
     try {
-        fs.writeFileSync(relpath, data);
+        fs.writeFileSync(realpath, data);
         return true;
     } catch (e) {
         return false;
@@ -247,5 +332,7 @@ module.exports = {
     returnAppCachePath,
     returnRootPath,
     returnAppDataPath,
-    doAllFoldersExist
+    doAllFoldersExist,
+    copy_file_relpath,
+    mv_file_relpath
 }

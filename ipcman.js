@@ -1,4 +1,4 @@
-const { ipcMain, protocol, dialog } = require('electron');
+const { ipcMain, protocol, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { v4 : uuidv4 } = require('uuid');
@@ -16,11 +16,11 @@ let SHELL_VERSION = 5;
 let SHELL_PATH = null;
 // ============================ //
 
-async function init(app) {
+async function init(app, shellver) {
     ipcManLog.info("Initialising Inter-Process Communications Manager ...");
     folderMan.init();
     appMan.init(folderMan);
-
+    SHELL_VERSION = shellver;
     protocol.registerFileProtocol('atom', (request, callback) => {
         const filePath = folderMan.relpath_to_realpath(request.url.slice('atom://'.length));
         callback(filePath);
@@ -75,6 +75,36 @@ function manageIPC(app, win) {
         win.webContents.send("FileContents", {data: folderMan.read_file_relpath(path), token: token});
     });
 
+    ipcMain.on('CopyFile', (e, args) => {
+        ipcManLog.info("CopyFile request");
+        let src = args.src;
+        let dest = args.dest;
+        let token = args.token;
+        if (nullOrUndefined(src) || nullOrUndefined(dest) || nullOrUndefined(token)) {
+            return;
+        }
+        let op = folderMan.copy_file_relpath(src, dest);
+        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.basename(path.dirname(dest))), token: token});
+        if (!op) {
+            win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't copy that file.");
+        }
+    });
+
+    ipcMain.on('MoveFile', (e, args) => {
+        ipcManLog.info("MoveFile request");
+        let src = args.src;
+        let dest = args.dest;
+        let token = args.token;
+        if (nullOrUndefined(src) || nullOrUndefined(dest) || nullOrUndefined(token)) {
+            return;
+        }
+        let op = folderMan.mv_file_relpath(src, dest);
+        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.basename(path.dirname(dest))), token: token});
+        if (!op) {
+            win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't move that file.");
+        }
+    });
+
     ipcMain.on('WriteFile', (e, args) => {
         ipcManLog.info("WriteFile request");
         if (nullOrUndefined(args.path) || nullOrUndefined(args.data) || nullOrUndefined(args.token)) {
@@ -97,11 +127,11 @@ function manageIPC(app, win) {
 
     ipcMain.on("MakeDirectory", (e, args) => {
         ipcManLog.info("MakeDirectory request");
-        let path = args.path;
+        let _path = args.path;
         let token = args.token;
-        if (nullOrUndefined(path) || nullOrUndefined(token)) return;
-        let op = folderMan.make_dir_relpath(path);
-        let dirC = folderMan.return_safe_contents(path);
+        if (nullOrUndefined(_path) || nullOrUndefined(token)) return;
+        let op = folderMan.make_dir_relpath(_path);
+        let dirC = folderMan.return_safe_contents(path.basename(path.dirname(_path)));
         win.webContents.send("DirContents", {data: dirC, token: token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't make that directory.");
@@ -110,11 +140,11 @@ function manageIPC(app, win) {
 
     ipcMain.on("Remove", (e, args) => {
         ipcManLog.info("Remove request");
-        let path = args.path;
+        let _path = args.path;
         let token = args.token;
-        if (nullOrUndefined(path) || nullOrUndefined(token)) return;
-        let op = folderMan.remove_relpath(path);
-        let dirC = folderMan.return_safe_contents(path);
+        if (nullOrUndefined(_path) || nullOrUndefined(token)) return;
+        let op = folderMan.remove_relpath(_path);
+        let dirC = folderMan.return_safe_contents(path.basename(path.dirname(_path)));
         win.webContents.send("DirContents", {data: dirC, token: token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't remove that path.");

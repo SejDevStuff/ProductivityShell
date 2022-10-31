@@ -38,7 +38,7 @@ window.onclick = (e) => {
     let element = e.target;
     if (element.classList.contains("app")) {
         var appPath = element.id;
-        if (hiccuped) return;
+        if (hiccupped) return;
         window.api.run_app(appPath);
     }
 }
@@ -84,16 +84,18 @@ function open_file(fpath) {
 }
 
 let ALLOWED_APP_FUNC = {
-    on: window.api.sock_on,
-    get_online_app_list: window.api.get_online_app_list,
+    on: null,
+    get_online_app_list: null,
     install_app: window.api.install_app,
     uninstall_app: window.api.uninstall_app,
-    read_dir: window.api.read_dir,
-    make_dir: window.api.make_dir,
-    read_file: window.api.read_file,
-    write_file: window.api.write_file,
-    remove: window.api.remove,
-    open_file: open_file
+    read_dir: null,
+    make_dir: null,
+    read_file: null,
+    write_file: null,
+    remove: null,
+    open_file: open_file,
+    move_file: null,
+    copy_file: null
 };
 
 let _TMP_ALLOWED_APP_FUNC = {};
@@ -108,6 +110,7 @@ function destroyAllApps() {
 }
 
 function hiccup() {
+    hiccupped = true;
     destroyAllApps();
     for (const key in ALLOWED_APP_FUNC) {
         if (ALLOWED_APP_FUNC.hasOwnProperty(key)) {
@@ -126,13 +129,14 @@ function hiccupEnd() {
         }
     }
     _TMP_ALLOWED_APP_FUNC = {};
-    msgBox("<h1>All clear!</h1>We had encountered a hiccup, but it's all fixed now! Sorry for the inconvenience.");
+    hiccupped = false;
+    msgBox("<h1>Crisis averted!</h1>We had encountered a hiccup, but it's all fixed now! Sorry for the inconvenience.");
 }
 
-let hiccuped = false;
+let hiccupped = false;
 
 function runApp(name, path, uuid, key) {
-    if (hiccuped) return;
+    if (hiccupped) return;
 
     let appWindow = document.createElement('div');
     appWindow.classList.add("draggable");
@@ -182,6 +186,14 @@ function runApp(name, path, uuid, key) {
 
     localAppFunc.remove = (path) => {
         window.api.remove(path, uuid);
+    }
+
+    localAppFunc.move_file = (src, dest) => {
+        window.api.move_file(src, dest, uuid);
+    }
+
+    localAppFunc.copy_file = (src, dest) => {
+        window.api.copy_file(src, dest, uuid);
     }
 
     // make sure applications only get events THEY are supposed to get.
@@ -280,11 +292,9 @@ window.api.sock_on('GetShellPath', (e, data) => {
 });
 
 window.api.sock_on("Hiccup", (e, data) => {
-    hiccuped = true;
     hiccup();
 });
 
 window.api.sock_on("HiccupEnd", (e, data) => {
-    hiccuped = false;
     hiccupEnd();
 });
