@@ -25,7 +25,6 @@ async function init(app) {
         const filePath = folderMan.relpath_to_realpath(request.url.slice('atom://'.length));
         callback(filePath);
     })
-    
     progInit = true;
 }
 
@@ -49,7 +48,7 @@ function manageIPC(app, win) {
                 let Applications = appMan.getInstalledApplications();
                 win.webContents.send('ApplicationsList', Applications);
                 appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
-                    win.webContents.send("AppList", applist);
+                    win.webContents.send("AppList", {data: applist, token: "*"});
                 })
             }, 500)
         });
@@ -57,41 +56,69 @@ function manageIPC(app, win) {
 
     ipcMain.on('GetOnlineAppList', (e, args) => {
         ipcManLog.info("GetOnlineAppList request");
+        let token = args;
+        if (nullOrUndefined(token)) {
+            return;
+        }
         appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
-            win.webContents.send("AppList", applist);
+            win.webContents.send("AppList", {data: applist, token: token});
         })
     });
 
     ipcMain.on('ReadFile', (e, args) => {
         ipcManLog.info("ReadFile request");
-        win.webContents.send("FileContents", folderMan.read_file_relpath(args));
+        let path = args.path;
+        let token = args.token;
+        if (nullOrUndefined(path) || nullOrUndefined(token)) {
+            return;
+        }
+        win.webContents.send("FileContents", {data: folderMan.read_file_relpath(path), token: token});
     });
 
     ipcMain.on('WriteFile', (e, args) => {
         ipcManLog.info("WriteFile request");
-        if (nullOrUndefined(args.path) || nullOrUndefined(args.data)) {
+        if (nullOrUndefined(args.path) || nullOrUndefined(args.data) || nullOrUndefined(args.token)) {
             return;
         }
-        folderMan.write_file_relpath(args.path, args.data);
+        let op = folderMan.write_file_relpath(args.path, args.data);
+        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.basename(path.dirname(args.path))), token: args.token});
+        if (!op) {
+            win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't write to that file.");
+        }
     });
 
     ipcMain.on('ReadDirectory', (e, args) => {
-        ipcManLog.info("ReadDirectory request");
-        if (nullOrUndefined(args)) return;
-        let dirC = folderMan.return_safe_contents(args);
-        win.webContents.send("DirContents", dirC);
+        let path = args.path;
+        let token = args.token;
+        if (nullOrUndefined(path) || nullOrUndefined(token)) return;
+        let dirC = folderMan.return_safe_contents(path);
+        win.webContents.send("DirContents", {data: dirC, token: token});
     });
 
     ipcMain.on("MakeDirectory", (e, args) => {
         ipcManLog.info("MakeDirectory request");
-        if (nullOrUndefined(args)) return;
-        folderMan.make_dir_relpath(args);
+        let path = args.path;
+        let token = args.token;
+        if (nullOrUndefined(path) || nullOrUndefined(token)) return;
+        let op = folderMan.make_dir_relpath(path);
+        let dirC = folderMan.return_safe_contents(path);
+        win.webContents.send("DirContents", {data: dirC, token: token});
+        if (!op) {
+            win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't make that directory.");
+        }
     });
 
     ipcMain.on("Remove", (e, args) => {
         ipcManLog.info("Remove request");
-        if (nullOrUndefined(args)) return;
-        folderMan.remove_relpath(args);
+        let path = args.path;
+        let token = args.token;
+        if (nullOrUndefined(path) || nullOrUndefined(token)) return;
+        let op = folderMan.remove_relpath(path);
+        let dirC = folderMan.return_safe_contents(path);
+        win.webContents.send("DirContents", {data: dirC, token: token});
+        if (!op) {
+            win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't remove that path.");
+        }
     });
 
     ipcMain.on('AvailableForUpdates', (e,args) => {
@@ -181,7 +208,7 @@ function manageIPC(app, win) {
                                 let Applications = appMan.getInstalledApplications();
                                 win.webContents.send('ApplicationsList', Applications);
                                 appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
-                                    win.webContents.send("AppList", applist);
+                                    win.webContents.send("AppList", {data: applist, token: "*"});
                                 })
                             }, 500)
                         });
@@ -202,7 +229,7 @@ function manageIPC(app, win) {
                     let Applications = appMan.getInstalledApplications();
                     win.webContents.send('ApplicationsList', Applications);
                     appMan.returnSafeAppList(SHELL_VERSION).then((applist) => {
-                        win.webContents.send("AppList", applist);
+                        win.webContents.send("AppList", {data: applist, token: "*"});
                     })
                 }
             });

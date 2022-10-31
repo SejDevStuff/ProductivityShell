@@ -38,6 +38,7 @@ window.onclick = (e) => {
     let element = e.target;
     if (element.classList.contains("app")) {
         var appPath = element.id;
+        if (hiccuped) return;
         window.api.run_app(appPath);
     }
 }
@@ -59,8 +60,11 @@ function filterAppList() {
     }
 }
 
+let APP_UUIDS = [];
+
 function destroyApp(uuid) {
     document.body.removeChild(document.getElementById(uuid));
+    APP_UUIDS = APP_UUIDS.filter(x => x !== uuid);
 }
 
 window.api.sock_on('RunApp', (e, data) => {
@@ -75,6 +79,10 @@ window.api.sock_on('RunApp', (e, data) => {
     runApp(name, path, uuid, key);
 })
 
+function open_file(fpath) {
+    msgBox("You do not have a program installed which can open this file");
+}
+
 let ALLOWED_APP_FUNC = {
     on: window.api.sock_on,
     get_online_app_list: window.api.get_online_app_list,
@@ -84,10 +92,48 @@ let ALLOWED_APP_FUNC = {
     make_dir: window.api.make_dir,
     read_file: window.api.read_file,
     write_file: window.api.write_file,
-    remove: window.api.remove
+    remove: window.api.remove,
+    open_file: open_file
 };
 
+let _TMP_ALLOWED_APP_FUNC = {};
+
+function destroyAllApps() {
+    let apps = APP_UUIDS;
+    let _apps = apps;
+    for (let i = 0; i < _apps.length; i++) {
+        let app = _apps[i];
+        destroyApp(app);
+    }
+}
+
+function hiccup() {
+    destroyAllApps();
+    for (const key in ALLOWED_APP_FUNC) {
+        if (ALLOWED_APP_FUNC.hasOwnProperty(key)) {
+            _TMP_ALLOWED_APP_FUNC[key] = ALLOWED_APP_FUNC[key];
+        }
+    }
+    ALLOWED_APP_FUNC = {};
+    msgBox("<h1>Uh oh!</h1>Something went wrong! Don't worry: we're trying to fix the issue. Your apps will stop working temporarily as a safety feature.");
+}
+
+function hiccupEnd() {
+    destroyAllApps();
+    for (const key in _TMP_ALLOWED_APP_FUNC) {
+        if (_TMP_ALLOWED_APP_FUNC.hasOwnProperty(key)) {
+            ALLOWED_APP_FUNC[key] = _TMP_ALLOWED_APP_FUNC[key];
+        }
+    }
+    _TMP_ALLOWED_APP_FUNC = {};
+    msgBox("<h1>All clear!</h1>We had encountered a hiccup, but it's all fixed now! Sorry for the inconvenience.");
+}
+
+let hiccuped = false;
+
 function runApp(name, path, uuid, key) {
+    if (hiccuped) return;
+
     let appWindow = document.createElement('div');
     appWindow.classList.add("draggable");
     appWindow.id = uuid;
@@ -112,16 +158,63 @@ function runApp(name, path, uuid, key) {
 
     appWindow.appendChild(appFrame);
 
+    let localAppFunc = ALLOWED_APP_FUNC;
+
+    localAppFunc.get_online_app_list = () => {
+        window.api.get_online_app_list(uuid);
+    }
+
+    localAppFunc.read_file = (filepath) => {
+        window.api.read_file(filepath, uuid);
+    }
+
+    localAppFunc.read_dir = (filepath) => {
+        window.api.read_dir(filepath, uuid);
+    }
+
+    localAppFunc.write_file = (filepath, data) => {
+        window.api.write_file(filepath, data, uuid);
+    }
+
+    localAppFunc.make_dir = (dirpath) => {
+        window.api.make_dir(dirpath, uuid);
+    }
+
+    localAppFunc.remove = (path) => {
+        window.api.remove(path, uuid);
+    }
+
+    // make sure applications only get events THEY are supposed to get.
+    
+    localAppFunc.on = (channel, listener) => {
+        if (channel == "AppList" || channel == "FileContents" || channel == "DirContents") {
+            window.api.sock_on(channel, (evt, data) => {
+                try {
+                    if ((data.data === undefined) == false && (data.token === undefined) == false) {
+                        if (data.token == uuid || data.token == "*") {
+                            listener(evt, data.data);
+                        }
+                    } else {
+                        return;
+                    }
+                } catch (e) {
+                    return;
+                }
+            });
+        }
+    }
+
     appFrame.onload = () => {
         appFrame.contentWindow.window.functions = {};
-        for (const key in ALLOWED_APP_FUNC) {
-            if (ALLOWED_APP_FUNC.hasOwnProperty(key)) {
-                appFrame.contentWindow.window.functions[key] = ALLOWED_APP_FUNC[key];
+        for (const key in localAppFunc) {
+            if (localAppFunc.hasOwnProperty(key)) {
+                appFrame.contentWindow.window.functions[key] = localAppFunc[key];
             }
         }
         appFrame.contentWindow.postMessage("AppReady", "*");
     };
 
+    APP_UUIDS.push(uuid);
     document.body.appendChild(appWindow);
 
     $("#" + uuid).draggable({
@@ -139,11 +232,13 @@ function runApp(name, path, uuid, key) {
 }
 
 var modal = null;
+let unclosableModal = false;
 
 function msgBox(msg) {
     if ((modal === null) == false) {
         modal.close();
     }
+    if (unclosableModal) return;
     modal = new tingle.modal({
         footer: false,
         stickyFooter: false,
@@ -159,10 +254,37 @@ function msgBox(msg) {
     modal.open();
 }
 
+function uncloseableModal(msg) {
+    let modal2 = new tingle.modal({
+        footer: false,
+        stickyFooter: false,
+        closeMethods: [],
+        cssClass: ["modal"],
+    });
+    modal2.setContent(msg);
+    modal2.open();
+    unclosableModal = true;
+    hiccup();
+}
+
 window.api.sock_on('Message', (e, data) => {
     msgBox(data);
 });
 
+window.api.sock_on('UnclosableModal', (e, data) => {
+    uncloseableModal(data);
+});
+
 window.api.sock_on('GetShellPath', (e, data) => {
     msgBox("Your shell needs updating. Please select your shell EXE from the dialogue which opened.<br><b>Accidentally closed it?</b> Just restart your machine.");
+});
+
+window.api.sock_on("Hiccup", (e, data) => {
+    hiccuped = true;
+    hiccup();
+});
+
+window.api.sock_on("HiccupEnd", (e, data) => {
+    hiccuped = false;
+    hiccupEnd();
 });

@@ -8,14 +8,14 @@ contextBridge.exposeInMainWorld('api', {
     shutdown_computer: () => ipcRenderer.send('ShutdownComputer'),
     restart_computer: () => ipcRenderer.send('RestartComputer'),
 
-    get_online_app_list: () => ipcRenderer.send('GetOnlineAppList'),
+    get_online_app_list: (submission_token) => ipcRenderer.send('GetOnlineAppList', submission_token),
     install_app: (appName) => ipcRenderer.send('InstallApplication', appName),
     uninstall_app: (appName) => ipcRenderer.send('UninstallApplication', appName),
 
     // fs
-    read_file: (filepath) => ipcRenderer.send('ReadFile', filepath),
-    write_file: (filepath, data) => ipcRenderer.send('WriteFile', {path: filepath, data: data}),
-    read_dir: (dirpath) => ipcRenderer.send("ReadDirectory", dirpath),
-    make_dir: (dirpath) => ipcRenderer.send("MakeDirectory", dirpath),
-    remove: (path) => ipcRenderer.send('Remove', path)
+    read_file: (filepath, submission_token) => ipcRenderer.send('ReadFile', {path: filepath, token: submission_token}),
+    write_file: (filepath, data, submission_token) => ipcRenderer.send('WriteFile', {path: filepath, data: data, token: submission_token}),
+    read_dir: (dirpath, submission_token) => ipcRenderer.send("ReadDirectory", {path: dirpath, token: submission_token}),
+    make_dir: (dirpath, submission_token) => ipcRenderer.send("MakeDirectory", {path: dirpath, token: submission_token}),
+    remove: (path, submission_token) => ipcRenderer.send('Remove', {path: path, token: submission_token})
 })

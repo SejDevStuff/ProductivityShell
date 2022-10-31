@@ -37,10 +37,31 @@ function init() {
     progInit = true;
 }
 
+function doAllFoldersExist() {
+    let rp = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+    rp = path.join(rp, "prodsuite_data");
+    if (!fs.existsSync(rp)) {
+        return false;
+    }
+    let ap = path.join(rp, "Applications");
+    if (!fs.existsSync(ap)) {
+        return false;
+    }
+    let acp = path.join(rp, "ApplicationCache");
+    if (!fs.existsSync(acp)) {
+        return false;
+    }
+    let adp = path.join(rp, "ApplicationData");
+    if (!fs.existsSync(adp)) {
+        return false;
+    }
+    return true;
+}
+
 function make_dir_relpath(dirpath) {
     if (!progInit) {
         folderManLog.error("Please run init() before using any other function!");
-        return;
+        return false;
     }
 
     folderManLog.info("Making path " + dirpath);
@@ -50,47 +71,61 @@ function make_dir_relpath(dirpath) {
 
     if (!dirpath.startsWith(ROOT_PATH)) {
         folderManLog.warn("Dirpath does not start with ROOT_PATH");
-        return;
+        return false;
     }
 
     if (fs.existsSync(dirpath)) {
         folderManLog.warn("Already exists");
-        return;
+        return false;
     }
 
     try {
         fs.mkdirSync(dirpath);
+        return true;
     } catch (e) {
         folderManLog.error("Cannot make directory");
+        return false;
     }
 }
 
 function remove_relpath(relpath) {
     if (!progInit) {
         folderManLog.error("Please run init() before using any other function!");
-        return;
+        return false;
     }
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         folderManLog.error("Invalid RELPATH for removing");
         return false;
     }
-    if (fs.lstatSync(realpath).isDirectory() == true) {
-        fs.rmSync(realpath, {recursive: true});
-    } else if (fs.lstatSync(realpath).isFile() == true) {
-        fs.unlinkSync(realpath);
+    try {
+        if (fs.lstatSync(realpath).isDirectory() == true) {
+            fs.rmSync(realpath, {recursive: true});
+            return true;
+        } else if (fs.lstatSync(realpath).isFile() == true) {
+            fs.unlinkSync(realpath);
+            return true;
+        }
+    } catch (e) {
+        return false;
     }
 }
 
 function write_file_relpath(relpath, data) {
     if (!progInit) {
         folderManLog.error("Please run init() before using any other function!");
-        return;
+        return false;
     }
     let realpath = path.resolve(path.join(ROOT_PATH, relpath));
     if (!realpath.startsWith(ROOT_PATH)) {
         folderManLog.error("Invalid RELPATH for writing");
         return false;
+    }
+    if (fs.existsSync(realpath)) {
+        if (!fs.lstatSync(realpath).isFile()) {
+            folderManLog.error("Path exists and is not a file");
+            return false;
+        }
     }
     try {
         fs.writeFileSync(relpath, data);
@@ -143,8 +178,6 @@ function return_safe_contents(dirpath) {
         return;
     }
 
-    folderManLog.info("Getting path " + dirpath)
-
     var Data = {
         _dpath: "/",
         contents: []
@@ -176,13 +209,11 @@ function return_safe_contents(dirpath) {
         if (fs.lstatSync(_file).isDirectory() == true) {
             Data.contents.push({ type: 1, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
         } else if (fs.lstatSync(_file).isFile() == true) {
-            if (_file.endsWith(".rtf")) {
-                Data.contents.push({ type: 0, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
-            }
+            Data.contents.push({ type: 0, rel_f_path: _file.replace(ROOT_PATH, "/"), f_name: path.basename(_file) });
         }
     }
 
-    Data._dpath = path.resolve(dirpath.replace(ROOT_PATH, "/"));
+    Data._dpath = dirpath.replace(ROOT_PATH, "/");
 
     return Data;
 }
@@ -215,5 +246,6 @@ module.exports = {
     returnAppPath,
     returnAppCachePath,
     returnRootPath,
-    returnAppDataPath
+    returnAppDataPath,
+    doAllFoldersExist
 }
