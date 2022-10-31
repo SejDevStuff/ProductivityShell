@@ -21,11 +21,12 @@ window.onload = () => {
         }
     });
 
-    window.api.show_available_for_updates();
+    window.api.check_for_updates();
 
     document.getElementById('_shutdown_').onclick = window.api.shutdown_computer;
     document.getElementById('_reboot_').onclick = window.api.restart_computer;
     document.getElementById("refresh_app_list").onclick = refreshAppList;
+    document.getElementById("updateBtn").onclick = window.api.update;
 }
 
 function refreshAppList() {
@@ -287,8 +288,8 @@ window.api.sock_on('UnclosableModal', (e, data) => {
     uncloseableModal(data);
 });
 
-window.api.sock_on('GetShellPath', (e, data) => {
-    msgBox("Your shell needs updating. Please select your shell EXE from the dialogue which opened.<br><b>Accidentally closed it?</b> Just restart your machine.");
+window.api.sock_on("UpdateAvailable", (e, data) => {
+    document.getElementById("updateAvailable").style.display = "inline";
 });
 
 window.api.sock_on("Hiccup", (e, data) => {

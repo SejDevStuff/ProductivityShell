@@ -1,4 +1,4 @@
-const { ipcMain, protocol, dialog, shell } = require('electron');
+const { ipcMain, protocol, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { v4 : uuidv4 } = require('uuid');
@@ -84,7 +84,7 @@ function manageIPC(app, win) {
             return;
         }
         let op = folderMan.copy_file_relpath(src, dest);
-        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.basename(path.dirname(dest))), token: token});
+        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.dirname(dest)), token: token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't copy that file.");
         }
@@ -99,7 +99,7 @@ function manageIPC(app, win) {
             return;
         }
         let op = folderMan.mv_file_relpath(src, dest);
-        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.basename(path.dirname(dest))), token: token});
+        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.dirname(dest)), token: token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't move that file.");
         }
@@ -111,7 +111,7 @@ function manageIPC(app, win) {
             return;
         }
         let op = folderMan.write_file_relpath(args.path, args.data);
-        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.basename(path.dirname(args.path))), token: args.token});
+        win.webContents.send("DirContents", {data: folderMan.return_safe_contents(path.dirname(args.path)), token: args.token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't write to that file.");
         }
@@ -131,7 +131,7 @@ function manageIPC(app, win) {
         let token = args.token;
         if (nullOrUndefined(_path) || nullOrUndefined(token)) return;
         let op = folderMan.make_dir_relpath(_path);
-        let dirC = folderMan.return_safe_contents(path.basename(path.dirname(_path)));
+        let dirC = folderMan.return_safe_contents(path.dirname(_path));
         win.webContents.send("DirContents", {data: dirC, token: token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't make that directory.");
@@ -144,32 +144,40 @@ function manageIPC(app, win) {
         let token = args.token;
         if (nullOrUndefined(_path) || nullOrUndefined(token)) return;
         let op = folderMan.remove_relpath(_path);
-        let dirC = folderMan.return_safe_contents(path.basename(path.dirname(_path)));
+        let dirC = folderMan.return_safe_contents(path.dirname(_path));
         win.webContents.send("DirContents", {data: dirC, token: token});
         if (!op) {
             win.webContents.send("Message", "<h1>File Operation Error</h1>We couldn't remove that path.");
         }
     });
 
-    ipcMain.on('AvailableForUpdates', (e,args) => {
+    ipcMain.on('CheckForUpdates', (e, args) => {
+        appMan.checkVersion(SHELL_VERSION).then((result) => {
+            if (result) {
+                win.webContents.send("UpdateAvailable");
+            }
+        });
+    });
+
+    ipcMain.on('Update', (e,args) => {
         appMan.checkVersion(SHELL_VERSION).then((result) => {
             if (result) {
                 if (SHELL_PATH == null) {
-                    win.webContents.send("GetShellPath", "");
+                    win.webContents.send("Message", "Your shell needs updating. Please select your shell EXE from the dialogue which opened.<br><b>Accidentally closed it?</b> Just press the 'Update' button again");
                     setTimeout(() => {
                         ipcManLog.info("An update is available!");
                         dialog.showOpenDialog({ properties: ['openFile'], title: "Your shell needs updating. Please select your shell EXE." }).then((path) => {
                             if (path.canceled) {
-                                win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Restart your computer please.");
+                                win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Try updating again.");
                                 return;
                             }
                             SHELL_PATH = path.filePaths[0];
-                            win.webContents.send("Message", "<h1>Updating...</h1>Give us a moment while we update your Shell. Your computer should automatically restart after the update.");
+                            win.webContents.send("UnclosableModal", "<h1>Updating...</h1>Give us a moment while we update your Shell. Your computer should automatically restart after the update.");
                             appMan.updateShell(SHELL_PATH).then((result) => {
                                 if (result) {
                                     process.exit();
                                 } else {
-                                    win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Restart your computer please.");
+                                    win.webContents.send("Message", "<h1>Error</h1>There was an error whilst trying to update your shell. Try updating again.");
                                     return;
                                 }
                             });

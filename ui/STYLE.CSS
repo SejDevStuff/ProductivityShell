@@ -49,6 +49,7 @@ button:focus {
   background-color: #424242;
   height: 400px;
   margin-top: 20px;
+  margin-right: 25px;
 }
 
 .app {
@@ -123,5 +124,12 @@ button:focus {
   position: absolute;
   top: 0;
   left: 0;
+  display: none;
+}
+
+#updateAvailable {
+  float: right;
+  margin-right: 25px;
+  color: rgb(226, 50, 50);
   display: none;
 }
