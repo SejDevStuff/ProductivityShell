@@ -40,6 +40,11 @@ async function getAppList() {
 }
 
 async function appExists(appName) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     let appdb = await getAppList();
     if ((appdb[appName] === undefined) == false) {
         return true;
@@ -49,6 +54,11 @@ async function appExists(appName) {
 }
 
 async function downloadFile(fileUrl, outputLocationPath) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     const writer = fs.createWriteStream(outputLocationPath);
 
     return axios({
@@ -75,6 +85,11 @@ async function downloadFile(fileUrl, outputLocationPath) {
 }
 
 async function _install(url, mode, dest, version) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     let tmp_loc = path.join(APP_CACHE_PATH, uuidv4());
     await downloadFile(url, tmp_loc);
     if (fs.existsSync(dest)) {
@@ -105,6 +120,11 @@ async function _install(url, mode, dest, version) {
 }
 
 async function checkVersion(ver) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     let res = await axios.get(path.join(APP_REPO, "shellver.txt"));
     var version = parseInt(res.data);
     if (version > ver) {
@@ -115,6 +135,11 @@ async function checkVersion(ver) {
 }
 
 async function returnSafeAppList(shellver) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     let appList = await getAppList();
     let safeAppList = [];
     for (const key in appList) {
@@ -203,6 +228,11 @@ async function returnSafeAppList(shellver) {
 }
 
 async function updateShell(shell_path_dsk) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     let shell_lnk = await axios.get(path.join(APP_REPO, "shelllnk.txt"));
     try {
         let lnk = shell_lnk.data;
@@ -220,6 +250,11 @@ async function updateShell(shell_path_dsk) {
 }
 
 function appExistsLocal(appName) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     let install_path = path.join(APP_PATH, appName);
     if (!install_path.startsWith(APP_PATH)) {
         appManLog.error("Invalid install path");
@@ -234,6 +269,11 @@ function appExistsLocal(appName) {
 }
 
 function uninstallApp(AppName) {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     appManLog.info("Uninstalling " + AppName);
     let install_path = path.join(APP_PATH, AppName);
     if (!install_path.startsWith(APP_PATH)) {
@@ -322,6 +362,11 @@ async function install(AppName, ShellVer) {
 }
 
 function getInstalledApplications() {
+    if (!progInit) {
+        appManLog.error("Please run init() before using any other function!");
+        return;
+    }
+
     appManLog.info("GetInstalledApps request")
     var Applications = [];
     var AvailableApps = foldermanInstance.return_safe_contents(foldermanInstance.realpath_to_relpath(APP_PATH));
